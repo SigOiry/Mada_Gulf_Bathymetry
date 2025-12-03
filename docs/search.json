@@ -1,0 +1,9 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Work about the bathymetry estimation of Sainte Marie Lagoon?",
+    "section": "",
+    "text": "Visit the Github repository\n\n\n\n\nReading layer `NBS_modules_Dec_2025' from data source \n  `C:\\Users\\Simon\\Documents\\GiHub\\Mada_Gulf_Bathymetry\\Data\\NBS_modules_Dec_2025.shp' \n  using driver `ESRI Shapefile'\nSimple feature collection with 713 features and 3 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 382845.6 ymin: 8121984 xmax: 384700.8 ymax: 8124901\nProjected CRS: WGS 84 / UTM zone 39S\n\n\n\n\n\n\n\n\nFigure 1: Map of the Bathymetry of the gulf od Sainte Marie"
+  }
+]
