@@ -13,6 +13,7 @@ editor_options:
 <button onclick="window.open(&#39;https://github.com/SigOiry/Mada_Gulf_Bathymetry&#39;, &#39;_blank&#39;);" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
 
 Visit the Github repository
+
 </button>
 :::
 
@@ -142,3 +143,175 @@ m
 
 ```
 
+# Bathymetry of Each Module
+
+```{r gyraph plot}
+
+library(tidyverse)
+library(terra)
+library(sf)
+library(ggiraph)
+library(viridis)
+library(mgcv)
+library(tidyverse)
+library(terra)
+library(sf)
+library(ggiraph)
+library(viridis)
+library(mgcv)
+
+# --- INPUTS ---
+# bathy : SpatRaster (0–30 m)
+# polys : sf with column "ID"
+
+# 0. Make valid + row index
+polys_valid <- polys %>%
+  st_make_valid() %>%
+  mutate(poly_row = dplyr::row_number())
+
+# 1. Centroid latitude per polygon
+polys_cent <- polys_valid %>%
+  st_centroid(of_largest_polygon = TRUE) %>%
+  mutate(
+    centroid_lat = st_coordinates(.)[, "Y"]
+  ) %>%
+  st_drop_geometry() %>%
+  select(poly_row, ID, centroid_lat)
+
+# 2. Extract raster values per polygon
+df <- bathy %>%
+  terra::extract(vect(polys_valid), df = TRUE) %>%
+  as_tibble() %>%
+  rename(
+    poly_row = 1,
+    bathy    = 2
+  ) %>%
+  left_join(polys_cent, by = "poly_row") %>%
+  filter(!is.na(bathy))
+
+# 3. Per-ID stats (median + SD)
+df_stats <- df %>%
+  group_by(ID, centroid_lat) %>%
+  summarise(
+    median_bathy = median(bathy, na.rm = TRUE),
+    sd_bathy     = sd(bathy, na.rm = TRUE),
+    .groups      = "drop"
+  ) %>%
+  mutate(
+    ymin = median_bathy - sd_bathy,
+    ymax = median_bathy + sd_bathy,
+    tooltip = paste0(
+      "ID: ", ID, "\n",
+      "Latitude: ", round(centroid_lat, 4), "°\n",
+      "Median depth: ", round(median_bathy, 2), " m\n",
+      "SD: ±", round(sd_bathy, 2), " m"
+    )
+  )
+
+# --- 4. GAM model & predictions (manual smooth + uncertainty) -------------
+
+# Fit GAM: median bathymetry ~ smooth(latitude)
+gam_fit <- gam(
+  median_bathy ~ s(centroid_lat, k = 8),
+  data   = df_stats,
+  method = "REML"
+)
+
+# Prediction grid over latitude
+new_lat <- tibble(
+  centroid_lat = seq(
+    min(df_stats$centroid_lat, na.rm = TRUE),
+    max(df_stats$centroid_lat, na.rm = TRUE),
+    length.out = 200
+  )
+)
+
+pred <- predict(
+  gam_fit,
+  newdata = new_lat,
+  se.fit  = TRUE
+)
+
+gam_df <- new_lat %>%
+  mutate(
+    fit   = pred$fit,
+    se    = pred$se.fit,
+    lower = fit - 1.96 * se,
+    upper = fit + 1.96 * se
+  )
+
+# --- 5. Interactive plot --------------------------------------------------
+
+p <- ggplot() +
+  # SD whiskers (interactive)
+  geom_errorbar_interactive(
+    data = df_stats,
+    aes(
+      x     = centroid_lat,
+      ymin  = ymin,
+      ymax  = ymax,
+      data_id = ID,
+      tooltip = tooltip
+    ),
+    width = 0,
+    alpha = 0.5
+  ) +
+  # Median points (interactive)
+  geom_point_interactive(
+    data = df_stats,
+    aes(
+      x       = centroid_lat,
+      y       = median_bathy,
+      color   = centroid_lat,
+      data_id = ID,
+      tooltip = tooltip
+    ),
+    size = 3
+  ) +
+  # GAM uncertainty ribbon (static)
+  geom_ribbon(
+    data = gam_df,
+    aes(
+      x    = centroid_lat,
+      ymin = lower,
+      ymax = upper
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.2
+  ) +
+  # GAM fitted line (static)
+  geom_line(
+    data = gam_df,
+    aes(
+      x = centroid_lat,
+      y = fit
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1,
+    color = "black"
+  ) +
+  scale_color_viridis_c(name = "Latitude") +
+  labs(
+    x = "Centroid latitude (°)",
+    y = "Median bathymetry (m)",
+    title = "Median bathymetry vs latitude with SD and GAM fit (95% CI)"
+  ) +
+  theme_bw()
+
+g <- girafe(
+  ggobj      = p,
+  width_svg  = 10,
+  height_svg = 6,
+  options = list(
+    opts_hover(css = "stroke:black;stroke-width:2;"),
+    opts_hover_inv(css = "opacity:0.3;"),
+    opts_toolbar(saveaspng = TRUE)
+  )
+)
+
+g
+
+
+
+
+```
