@@ -3,19 +3,12 @@ project:
   output-dir: "docs"
   render:
     - index.qmd
-    - Models_done_Right.qmd
-    - Seasonality_variables.qmd
 website:
-  title: "Chla Variability of the Med Sea"
+  title: "Bathymetry of the Sainte Marie Lagoon"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - href: Models_done_Right.qmd
-        text: Results
-      - href: Seasonality_variables.qmd
-        text: Temporality of Variables
-
 format:
   html:
     theme:

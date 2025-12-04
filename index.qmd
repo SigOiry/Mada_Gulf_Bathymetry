@@ -13,7 +13,6 @@ editor_options:
 <button onclick="window.open(&#39;https://github.com/SigOiry/Mada_Gulf_Bathymetry&#39;, &#39;_blank&#39;);" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">
 
 Visit the Github repository
-
 </button>
 :::
 
@@ -102,7 +101,8 @@ m <- leaflet() |>
     group   = "Polygons",
     color   = "black",
     weight  = 1,
-    fill    = FALSE,
+    fill    = "red",
+    opacity  = 0.5,
     label   = ~as.character(ID),
     highlightOptions = highlightOptions(
       weight       = 3,
@@ -146,6 +146,12 @@ m
 # Bathymetry of Each Module
 
 ```{r gyraph plot}
+#| echo: false
+#| error: false
+#| message: false
+#| eval: true
+#| warning: false
+
 
 library(tidyverse)
 library(terra)
@@ -295,7 +301,8 @@ p <- ggplot() +
     x = "Centroid latitude (°)",
     y = "Median bathymetry (m)",
     title = "Median bathymetry vs latitude with SD and GAM fit (95% CI)"
-  ) +
+  ) + 
+  scale_x_reverse()+
   theme_bw()
 
 g <- girafe(
